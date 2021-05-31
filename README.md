@@ -1,2 +1,2 @@
 # Glane
-This repository contains all freelancing projects done by me
+This repository contains all projects done by me
