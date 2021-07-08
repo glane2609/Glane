@@ -1,0 +1,290 @@
+---
+title: 'null'
+output:
+  word_document: default
+  always_allow_html: yes
+  html_document:
+    df_print: paged
+---
+
+
+Introduction: 
+
+
+
+Read the data
+```{r echo = TRUE}
+college<- read.csv("C:/Users/glane/Downloads/College.csv")
+
+```
+
+b
+```{r}
+college =college [,-1]
+fix(college)
+```
+
+c (i)
+```{r}
+summary(college)
+```
+c(ii)
+```{r}
+pairs(college[,2:10], pch = 19)
+```
+
+```{r}
+
+boxplot(college$Outstate ~ college$Private == c("Yes" ,"No") , main = "Outstate vs Private" )
+```
+
+```{r}
+Elite=rep("No",nrow(college ))
+Elite[college$Top10perc >50] = " Yes"
+Elite=as.factor(Elite)
+college=data.frame(college , Elite)
+summary(college)
+```
+Elite uNiversities = 699
+
+
+
+```{r}
+boxplot(college$Outstate ~ college$Elite  , main = "Outstate vs Elite" )
+```
+
+
+
+```{r}
+
+edx %>%
+  summarize(n_users = n_distinct(userId),
+            n_movies = n_distinct(movieId))
+```
+
+Even if each row represents a rating given by one user to one movie, the number of uniques values for the userId is 69878 and for the movieId 10664 : Both usersId and movieId which are presented as integer should be presumably treat as factors for some analysis purposes. Also, this means that there are less movies provided for ratings than users that rated them.If we think in terms of a large matrix, with user on the rows and movies on the columns, a challenge we face is the sparsity of our matrix. This large matrix will contain many empty cells. More over, we face a curse of dimensionality problem .These issues should be treat in our further analysis.
+
+```{r}
+# histogram of number of ratings by movieId
+
+edx %>% 
+  count(movieId) %>% 
+  ggplot(aes(n)) + 
+  geom_histogram( bins=30, color = "red") +
+  scale_x_log10() + 
+  ggtitle("Movies") +
+  labs(subtitle  ="number of ratings by movieId", 
+       x="movieId" , 
+       y="number of ratings", 
+       caption ="source data : edx set") +
+  theme(panel.border = element_rect(colour="black", fill=NA)) 
+```
+
+
+```{r}
+
+edx %>% 
+  count(userId) %>% 
+  ggplot(aes(n)) + 
+  geom_histogram( bins=30, color = "red") +
+  scale_x_log10() + 
+  ggtitle("Users") +
+  labs(subtitle ="number of ratings by UserId", 
+       x="userId" , 
+       y="number of ratings") +
+  theme(panel.border = element_rect(colour="black", fill=NA))
+```
+
+DATA PREPROCESSING
+Data typically needs to be preprocessed (e.g. cleansed, filtered, transformed) in order to be used by the machine learning techniques in the analysis step.
+1.Data transformation:
+Building a rating matrix 
+
+```{r}
+#Using SparseMatrix function to get the rating matrix from Matrix package
+library(Matrix)
+edx_1 <- edx
+
+edx_1$userId <- as.factor(edx_1$userId)
+edx_1$movieId <- as.factor(edx_1$movieId)
+
+edx_1$userId <- as.numeric(edx_1$userId)
+edx_1$movieId <- as.numeric(edx_1$movieId)
+sparse_ratings <- sparseMatrix(i = edx_1$userId,
+                         j = edx_1$movieId ,
+                         x = edx_1$rating, 
+                         dims = c(length(unique(edx_1$userId)),
+                                  length(unique(edx_1$movieId))),  
+                         dimnames = list(paste("u", 1:length(unique(edx_1$userId)), sep = ""), 
+                                        paste("m", 1:length(unique(edx_1$movieId)), sep = "")))
+
+
+# remove the copy created
+rm(edx_1)
+
+#give a look on the first 10 users
+sparse_ratings[1:10,1:10]
+class(sparse_ratings)
+```
+
+```{r}
+#Convert rating matrix into a recommenderlab sparse matrix via recommenderlab package
+library(recommenderlab)
+ratingMat <- new("realRatingMatrix", data = sparse_ratings)
+ratingMat
+```
+2.Relevant Data
+We know that some users saw more movies than the others. So, instead of displaying some random users and movies, we should select the most relevant users and movies. Thus we visualize only the users who have seen many movies and the movies that have been seen by many users.To identify and select the most relevant users and movies, we follow these steps:
+
+1.Determine the minimum number of movies per user.
+2.Determine the minimum number of users per movie.
+3.Select the users and movies matching these criteria.
+```{r}
+min_n_movies <- quantile(rowCounts(ratingMat), 0.9)
+
+min_n_users <- quantile(colCounts(ratingMat), 0.9)
+
+
+ratings_movies <- ratingMat[rowCounts(ratingMat) > min_n_movies,
+                            colCounts(ratingMat) > min_n_users]
+
+
+```
+we can notice that now, we have a rating matrix of 6976 distinct users (rows) x 1067 distinct movies(columns) , with 2311476 ratings .
+
+```{r}
+#before to proceed with regularization, i just remove the object copy of validation, "valid"
+rm(valid)
+
+#e. regularization 
+
+# remembering (5), $\lambda$ is a tuning parameter. We can use cross-validation to choose it
+
+
+lambdas <- seq(0, 10, 0.25)
+  
+  rmses <- sapply(lambdas, function(l){
+    
+    mu_reg <- mean(edx$rating)
+    
+    b_i_reg <- edx %>% 
+      group_by(movieId) %>%
+      summarize(b_i_reg = sum(rating - mu_reg)/(n()+l))
+    
+    b_u_reg <- edx %>% 
+      left_join(b_i_reg, by="movieId") %>%
+      group_by(userId) %>%
+      summarize(b_u_reg = sum(rating - b_i_reg - mu_reg)/(n()+l))
+    
+    predicted_ratings_b_i_u <- 
+      validation %>% 
+      left_join(b_i_reg, by = "movieId") %>%
+      left_join(b_u_reg, by = "userId") %>%
+      mutate(pred = mu_reg + b_i_reg + b_u_reg) %>%
+      .$pred
+    
+    return(RMSE(validation$rating,predicted_ratings_b_i_u))
+  })
+  
+  
+  qplot(lambdas, rmses)  
+```
+
+```{r}
+
+lambda <- lambdas[which.min(rmses)]
+lambda
+```
+
+```{r}
+#valid_set
+mu <- mean(edx$rating)
+b_i_reg <- edx %>% 
+    group_by(movieId) %>%
+    summarize(b_i = sum(rating - mu)/(n()+lambda))
+b_u_reg <- edx %>% 
+    left_join(b_i_reg, by="movieId") %>%
+    group_by(userId) %>%
+    summarize(b_u = sum(rating - b_i - mu)/(n()+lambda))
+predicted_ratings_6 <- 
+    validation %>% 
+    left_join(b_i_reg, by = "movieId") %>%
+    left_join(b_u_reg, by = "userId") %>%
+    mutate(pred = mu + b_i + b_u) %>%
+    pull(pred)
+View(predicted_ratings_6)
+model_6_rmse <- RMSE(predicted_ratings_6, validation$rating) # 0.864818
+
+```
+
+Methods and Analysis
+Recommender Engines
+```{r}
+# a. POPULAR , UBCF and IBCF algorithms of the recommenderlab package
+library(recommenderlab)
+model_pop <- Recommender(ratings_movies, method = "POPULAR", 
+                      param=list(normalize = "center"))
+
+#prediction example on the first 10 users
+pred_pop <- predict(model_pop, ratings_movies[1:10], type="ratings")
+as(pred_pop, "matrix")[,1:10]
+```
+
+
+
+```{r}
+#Calculation of rmse for popular method 
+e <- evaluationScheme(ratings_movies, method="split", train=0.7, given=-5)
+#5 ratings of 30% of users are excluded for testing
+
+model_pop <- Recommender(getData(e, "train"), "POPULAR")
+
+prediction_pop <- predict(model_pop, getData(e, "known"), type="ratings")
+
+rmse_popular <- calcPredictionAccuracy(prediction_pop, getData(e, "unknown"))[1]
+rmse_popular
+```
+
+
+```{r}
+#Estimating rmse for UBCF using Cosine similarity and selected n as 50 based on cross-validation
+set.seed(1)
+model <- Recommender(getData(e, "train"), method = "UBCF", 
+                     param=list(normalize = "center", method="Cosine", nn=50))
+
+prediction <- predict(model, getData(e, "known"), type="ratings")
+
+rmse_ubcf <- calcPredictionAccuracy(prediction, getData(e, "unknown"))[1]
+rmse_ubcf
+```
+
+
+
+```{r}
+
+#Estimating rmse for IBCF using Cosine similarity and selected n as 350 based on cross-validation
+set.seed(1)
+
+model_ibcf <- Recommender(getData(e, "train"), method = "IBCF", 
+                     param=list(normalize = "center", method="Cosine", k=350))
+
+prediction_ibcf <- predict(model_ibcf, getData(e, "known"), type="ratings")
+
+rmse_ibcf <- calcPredictionAccuracy(prediction_ibcf, getData(e, "unknown"))[1]
+rmse_ibcf
+```
+```{r}
+#summarize all the rmse for recommender algorithms
+library(kableExtra)
+rmse_results <- data.frame(methods=c("Regularized Movie + User Effect Model","Recommender Popular Model" , "Recommender UBCF" ,"Recommender IBCF"),rmse = c(model_6_rmse, rmse_popular,rmse_ubcf,rmse_ibcf))
+
+kable(rmse_results) %>%
+  kable_styling(bootstrap_options = "striped" , full_width = F , position = "center") %>%
+  kable_styling(bootstrap_options = "bordered", full_width = F , position ="center") %>%
+  column_spec(1,bold = T ) %>%
+  column_spec(2,bold = T ,color = "white" , background ="#D7261E")
+```
+
+
+
+

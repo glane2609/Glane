@@ -1,0 +1,332 @@
+---
+title: 'null'
+output:
+  pdf_document: default
+  always_allow_html: yes
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+
+Introduction: 
+
+
+
+Read the data
+```{r echo = TRUE}
+college<- read.csv("C:/Users/glane/Downloads/College.csv",stringsAsFactors=FALSE)
+```
+
+b
+```{r}
+college$Private <- factor(college$Private)
+rownames(college) = college[,1]
+fix(college)
+college = college[,-1]
+fix(college)
+```
+
+C.1
+```{r}
+summary(college)
+```
+2.
+```{r}
+pairs(college[,1:10])
+```
+
+3.
+```{r}
+library(ggplot2)
+ggplot(data = college,aes(y=Outstate,x=Private))+geom_boxplot(fill="yellowgreen") 
+```
+
+4.
+
+```{r}
+Elite=rep("No",nrow(college ))
+Elite[college$Top10perc >50] = " Yes"
+Elite=as.factor(Elite)
+college=data.frame(college , Elite)
+summary(college)
+```
+Elite uNiversities = 78
+
+
+
+```{r}
+ggplot(data = college,aes(y=Outstate,x=Elite))+geom_boxplot(fill="yellowgreen") 
+```
+
+
+5.
+```{r}
+ggplot(data = college, aes(x=Top25perc))+geom_histogram(bins = 30)+labs(title = "Percentage of The Top25 H.S. Students")
+ggplot(data = college, aes(x=Apps))+geom_histogram(bins = 30)+labs(title = "Number of New Applications Received")
+ggplot(data = college, aes(x=Personal))+geom_histogram(bins = 30)+labs(title = "Estimated Personal Spending")
+ggplot(data = college, aes(x=PhD))+geom_histogram(bins = 30)+labs(title = "Percentage of Faculty with Ph.D.'s")
+```
+
+6.
+```{r}
+summary(college$Personal)
+summary(college$PhD)
+```
+There is a college with more than 100% of percentage
+
+```{r}
+row.names(college)[which(college$PhD>100)]
+```
+
+Auto data
+
+```{r}
+library(ISLR)
+data("Auto")
+auto <- na.omit(Auto)
+```
+
+a.
+```{r}
+lapply(auto, class)
+```
+The column name is the only not numeric, therefore it is a qualitative, it is seen that the origin column is qualitative, factors described as numbers. The other columns are all quantitatives.
+
+```{r}
+auto$origin <- as.factor(auto$origin)
+```
+
+b.
+```{r}
+quant = names(auto) %in% c("name", "origin")
+lapply(auto[, !quant], range)
+```
+c
+```{r}
+lapply(auto[, !quant], function(x){ c('mean'=mean(x), 'sd'=sd(x))})
+```
+d
+```{r}
+lapply(auto[-(10:85),!quant], function(x){ c('mean'=mean(x), 'sd'=sd(x))})
+```
+e
+```{r}
+pairs(auto[, !quant])
+```
+
+
+
+```{r}
+ggplot(data = auto,aes(y=acceleration,x=displacement))+geom_point()
+ggplot(data = auto,aes(y=horsepower,x=weight))+geom_point()
+ggplot(data = auto,aes(y=mpg,x=cylinders))+geom_point()
+ggplot(data = auto,aes(y=mpg,x=weight))+geom_point()
+```
+mpg tends to decrease as cylinders or weight increases, whereas horsepower increases as weight increases, and acceleration and displacement have a negative correlation.
+
+```{r}
+ggplot(data = auto,aes(y=acceleration,x=mpg))+geom_point()
+ggplot(data = auto,aes(y=horsepower,x=mpg))+geom_point()
+ggplot(data = auto,aes(y=cylinders,x=mpg))+geom_point()
+ggplot(data = auto,aes(y=weight,x=mpg))+geom_point()
+ggplot(data = auto,aes(y=displacement,x=mpg))+geom_point()
+```
+The weights, displacement and horsepower decreases with increase in mpg.
+
+
+Boston housing data set
+a
+```{r}
+library(MASS)
+data("Boston")
+?Boston
+nrow(Boston)
+ncol(Boston)
+```
+The rows represent observations of the U.S. Census Tracts in the Boston Area. The columns presents the measures of the Census Variables.
+
+b
+```{r}
+pairs(Boston)
+```
+zn and distance have a negative relationship with crime. Age seems to have a positive relationship.
+
+
+```{r echo= TRUE}
+ggplot(data = Boston,aes(y=crim,x=nox))+geom_point()
+ggplot(data = Boston,aes(y=crim,x=rm))+geom_point()
+ggplot(data = Boston,aes(y=crim,x=age))+geom_point()
+ggplot(data = Boston,aes(y=crim,x=dis))+geom_point()
+ggplot(data = Boston,aes(y=crim,x=zn))+geom_point()
+ggplot(data = Boston,aes(y=crim,x=tax))+geom_point()
+```
+It seems that high crime increases in areas close to employment centers, older homes, and zones with residential lots less than 25,000 sqft. In other words, more urban or populated areas.
+
+d
+Crime Rates
+```{r}
+summary(Boston$crim)
+```
+The maximum value is much higher than the 3th quartile. Counting crime rates above 30
+
+```{r}
+length(Boston$crim[Boston$crim>30])
+```
+
+Tax Rates
+```{r echo= TRUE}
+ggplot(data = Boston,aes(tax))+geom_histogram(bins = 30)
+```
+There are particulary suburbs in a higher level, counting values above 500.
+
+```{r}
+length(Boston$tax[Boston$tax>500])
+```
+
+Pupil-Teacher Ratio
+```{r echo= TRUE}
+ggplot(data = Boston,aes(ptratio))+geom_histogram(bins = 30)
+```
+
+
+```{r}
+length(Boston$ptratio[Boston$ptratio>19])
+```
+There are only 18 suburbs with a crime rate greater than 20. There are 137 suburbs with a tax rate greater than 650. There are 253 suburbs with a pupil teacher ratio greater than 20. No real high crime rates, but high tax rates and high pupil teacher rates.
+
+e.
+```{r}
+nrow(Boston[Boston$chas==1,])
+```
+There are 35 suburbs that are bound by the Charles river.
+
+f.
+```{r}
+median(Boston$ptratio)
+```
+g.
+```{r}
+min(Boston$medv)
+```
+The 5th suburb has the lowest median value of owner occupied homes.
+
+```{r}
+range(Boston$tax)
+```
+The range for taxes is 187 to 711.
+
+```{r}
+Boston[min(Boston$medv),]$tax
+```
+The taxes for suburb 5 is 222, more on the lower end of the range.
+
+h.
+```{r}
+nrow(Boston[Boston$rm>7,])
+```
+64 suburbs average more than 7 rooms per dwelling.
+
+```{r}
+nrow(Boston[Boston$rm>8,])
+```
+13 suburbs average more than 8 rooms per dwelling.
+
+```{r}
+Boston[Boston$rm>8,]
+```
+There are only 2 suburbs with more than 8 rooms per dwelling that lie on the Charles river. rows : 164 and 365
+
+
+
+K-means clustering
+
+
+a.
+```{r echo= TRUE}
+x1 <- c(1, 1, 0, 5, 6, 4)
+x2 <- c(4, 3, 4, 1, 2, 0)
+plot(x1,x2)
+```
+
+b.
+```{r}
+x <- cbind(x1,x2)
+l<-sample(3, nrow(x), replace = T)
+l
+```
+
+c
+```{r}
+centroid1 <- c(mean(x[l == 1, 1]), mean(x[l == 1, 2]))
+centroid2 <- c(mean(x[l == 2, 1]), mean(x[l == 2, 2]))
+centroid1
+centroid2
+```
+
+d
+```{r}
+l <- c(1, 2, 2, 3, 3, 3)
+plot(x1, x2)
+points(centroid1[1], centroid1[2], col = 2, pch = 4)
+points(centroid2[1], centroid2[2], col = 3, pch = 4)
+```
+
+e
+```{r}
+centroid1 <- c(mean(x[l == 1, 1]), mean(x[l == 1, 2]))
+centroid2 <- c(mean(x[l == 2, 1]), mean(x[l == 2, 2]))
+plot(x1, x2)
+points(centroid1[1], centroid1[2], col = 2, pch = 4)
+points(centroid2[1], centroid2[2], col = 3, pch = 4)
+```
+f
+```{r}
+plot(x1, x2, col=(l + 1), pch = 20, cex = 2)
+```
+
+Q.6
+```{r}
+set.seed(123)
+n=20;p=50;s=10;mu1=c(rep(1,s),rep(0,p-s));
+mu2=c(rep(0,s),rep(1,s),rep(0,p-2*s));
+mu3=c(rep(0,s),rep(0,s),rep(1,s),rep(0,p-3*s));
+x1=matrix(rnorm(n*p),n,p)+mu1;
+x2=matrix(rnorm(n*p),n,p)+mu2
+x3=matrix(rnorm(n*p),n,p)+mu3
+features=rbind(x1,x2,x3)
+cat=c(rep("A",n),rep("B",n),rep("C",n))
+sim.data=data.frame(Class=cat,x=features)
+```
+
+c
+```{r}
+km <- kmeans(features, centers=3)
+table(km$cluster,cat)
+```
+All are perfectly clustered
+
+d
+```{r}
+km <- kmeans(features, centers=2)
+table(km$cluster,cat)
+```
+The middle class is forced to a wrong class. The extreme classes are classified correctly
+
+e
+```{r}
+km <- kmeans(features, centers=4, nstart = 20)
+table(km$cluster,cat)
+```
+
+One of the classes is split into 2 classes
+
+```{r}
+#principal component
+pc <- prcomp(features)$x
+km <- kmeans(pc[, 1:2], centers=3)
+table(km$cluster,cat)
+```
+The result gives the almost identical splitting when compared with centers = 3 for actual data
+
+

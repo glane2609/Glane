@@ -1,0 +1,137 @@
+---
+title: 'null'
+output:
+  html_document:
+    df_print: paged
+  always_allow_html: yes
+  pdf_document: default
+  word_document: default
+---
+
+Read the data
+```{r echo = TRUE}
+college<- read.csv("C:/Users/glane/Downloads/College.csv",stringsAsFactors=FALSE)
+```
+
+```{r}
+college$Private <- factor(college$Private)
+rownames(college) = college[,1]
+fix(college)
+college = college[,-1]
+fix(college)
+```
+
+```{r}
+summary(college)
+```
+
+
+```{r}
+pairs(college[,1:10])
+```
+
+```{r}
+library(ggplot2)
+ggplot(data = college,aes(y=Outstate,x=Private))+geom_boxplot(fill="yellowgreen") 
+```
+
+```{r}
+Elite=rep("No",nrow(college ))
+Elite[college$Top10perc >50] = " Yes"
+Elite=as.factor(Elite)
+college=data.frame(college , Elite)
+summary(college)
+```
+Elite universities = 78
+
+
+
+```{r}
+ggplot(data = college,aes(y=Outstate,x=Elite))+geom_boxplot(fill="yellowgreen")+labs(title = "Elite University vs Outstate") 
+```
+
+
+
+```{r}
+ggplot(data = college, aes(x=Top25perc))+geom_histogram(bins = 30)+labs(title = "Percentage of The Top25 H.S. Students")
+ggplot(data = college, aes(x=Apps))+geom_histogram(bins = 30)+labs(title = "Number of New Applications Received")
+ggplot(data = college, aes(x=Personal))+geom_histogram(bins = 30)+labs(title = "Estimated Personal Spending")
+ggplot(data = college, aes(x=PhD))+geom_histogram(bins = 30)+labs(title = "Percentage of Faculty with Ph.D.'s")
+```
+
+
+```{r}
+summary(college$Personal)
+summary(college$PhD)
+```
+There is a college with more than 100% of percentage
+
+```{r}
+row.names(college)[which(college$PhD>100)]
+```
+
+Inference
+```{r}
+m<- mean(college$Outstate)
+t.test(college$Outstate,mu = m)
+
+#Model Selection
+lmMod <- lm(Outstate ~ . , data = college)
+selectedMod <- step(lmMod)
+summary(selectedMod)
+all_vifs <- car::vif(selectedMod)
+print(all_vifs)
+```
+
+
+Q.C Apps
+
+Lasso and Ridge
+```{r}
+ggplot(data = college,aes(y=Apps,x=Private))+geom_boxplot(fill="yellowgreen")+labs(title = "Number of Apps received in Private colleges")
+```
+
+```{r}
+library(glmnet)
+varmtx <- model.matrix(Apps~.-1, data=college)
+response <- college$Apps
+
+# alpha=0 means ridge regression. 
+ridge <- glmnet(scale(varmtx), response, alpha=0)
+
+# Cross validation to find the optimal lambda penalization
+cv.ridge <- cv.glmnet(varmtx, response, alpha=0)
+plot(ridge, xvar = "lambda",main = "Ridge regression")
+abline(v=cv.ridge$lambda.min, col = "red", lty=2)
+abline(v=cv.ridge$lambda.1se, col="blue", lty=2)
+
+```
+
+Lasso Regression
+
+```{r}
+library(glmnet)
+# alpha=1 means lasso regression. 
+lasso <- glmnet(scale(varmtx), response, alpha=1)
+
+# Cross validation to find the optimal lambda penalization
+cv.lasso <- cv.glmnet(varmtx, response, alpha=1)
+
+
+plot(lasso, xvar = "lambda", main= "Lasso Regression")
+abline(v=cv.lasso$lambda.min, col = "red", lty=2)
+abline(v=cv.lasso$lambda.1se, col="blue", lty=2)
+```
+
+d. Graduation Rate
+
+```{r}
+library(caTools)
+sample.split(college$Grad.Rate,SplitRatio = 0.95)-> split_tag
+subset(college, split_tag==T)->train
+subset(college, split_tag==F)->test
+lm(Grad.Rate ~ ., data=train)-> model1
+predict(model1, newdata=test)->predicted_values
+
+
+```
