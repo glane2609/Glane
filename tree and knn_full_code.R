@@ -90,7 +90,7 @@ summary(train_norm)
 train_new <- train_norm[ran,]
 test_new <- test_norm[-ran,]
 
-write
+
 
 ##extract 23rd column (satisfaction) of train dataset because it will be used as 'cl' argument in knn function.
 train_target_category <- train[ran,23]
