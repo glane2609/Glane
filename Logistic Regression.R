@@ -1,4 +1,4 @@
-customer_churn<-read.csv("C:/Users/INTELLIPAAT/Desktop/customer_churn.csv")
+customer_churn<-read.csv("C:/Users/Glane/Desktop/customer_churn.csv")
 
 glm(Churn~MonthlyCharges, data= customer_churn, family="binomial") ->log_mod1
 summary(log_mod1)
