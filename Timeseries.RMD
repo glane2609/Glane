@@ -1,0 +1,190 @@
+---
+title: "Time series forecasting"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+
+Introduction: 
+Building a predictive forecasting model for close price values of Amazon (AMZN) and Microsoft(MSFT)
+
+
+
+
+Read the data
+```{r echo = TRUE}
+stock_price<-read.csv("C:/Users/glane/Downloads/prices.csv")
+```
+
+
+```{r}
+stock_price$date<- as.Date(stock_price$date,"%d-%m-%Y")
+```
+
+Since we know that this is daily data and it begins in 2010 let's update the frequency and start arguments.
+Selecting only two stocks for prediction as shown
+```{r}
+library(dplyr)
+stock_price <- filter(stock_price , symbol == c("AMZN" , "MSFT"))
+View(stock_price)
+stock_price_daily <- ts(stock_price$close, frequency = 52 ,start = 2010)
+```
+
+Plot the data with the autoplot() function which is convenient for working with time series.
+```{r}
+plot(stock_price_daily, main = "stock price of AMZN and MSFT")
+```
+From this we can see a few things
+
+1.There is a general updward trend
+2.The trend is not constant, it moves down during the recession
+3.There is differences in sales based on month
+
+
+Time Series Decomposition
+You should decompose your data to get or present a basic understanding of your data.
+Outputs of a decomposition
+
+1.The underlying trend of your data
+2.A seasonal factor
+3.A remainder which explains what the trend and seasonal factor do not
+
+Types of seasonal decompositions
+
+Additive Seasonal Decomposition: Each season gets moved by a constant number that is added or subtracted from the trend.
+Multiplicative Seasonal Decomposition: Each season has a number we multiply to the trend.
+
+
+Decomposing the Stock of AMZN and MSFT
+```{r}
+decomposed_stock_additive <- decompose(stock_price_daily, type = "additive")
+plot(decomposed_stock_additive)
+```
+Because our decomposition was additive, we can add the series in panels 2, 3, and 4 and get the top panel.
+
+data = trend + seasonal + remainder
+
+
+Splitting the data into train and test
+```{r}
+train <- window(stock_price_daily, end = c(2016,4))
+test <- window(stock_price_daily, start = c(2013, 1))
+```
+
+Exponential Smoothing for forecasting
+```{r}
+library(forecast)
+sesmodel <- ses(train, alpha = .2, h = 100)
+p1<-autoplot(forecast(sesmodel))
+p1
+etc_acc<-accuracy(sesmodel, test)
+etc_acc
+```
+
+
+Arima model
+When to use Arima model:
+1. Data should be stationary – by stationary it means that the properties of the series doesn’t depend on the time when it is captured. A white noise series and series with cyclic behavior can also be considered as stationary series.
+
+2. Data should be univariate – ARIMA works on a single variable. Auto-regression is all about regression with the past values.
+
+```{r}
+plot(decompose(train))
+```
+
+Autocorrelation 
+```{r}
+
+ggAcf(stock_price_daily, main='ACF for Differenced Series') 
+ggPacf(stock_price_daily, main='PACF for Differenced Series') 
+```
+On the x-axis we have previous time periods. On the y-axis we see the correlation between elec and its quantity from the time period on the x-axis.
+
+Here we see a strong correlation with present values and the previous value, as represented by the vertical bar. This makes sense as the most recent value gives an indicator of trend. We also see a pretty good correlation with its value a year ago. This makes sense because the value peaks the same time each year.
+
+Since these values are closely related (ie high correlation). We can create an effective autoregressive model with the ar() function. This will create a linear regression, finding coefficients between the past and current values.
+
+
+Unit Root Test
+```{r}
+library(tseries)
+adf.test( stock_price_daily, alternative = "stationary")
+```
+As per ADF test the series is stationary since p value is less than 0.05
+
+
+Arima(p,d,q)
+The values of p and q are then chosen by minimising the AICc after differencing the data d times. 
+p =  number of autoregressive terms
+d = the number of nonseasonal differences needed for stationarity, and
+q = number of moving average terms
+```{r}
+
+stocktrain <- Arima(train, order=c(1,1,2),
+  seasonal=c(1,1,2), lambda=0)
+stocktrain %>%
+  forecast(h=60) %>%
+  autoplot() + autolayer(test)
+summary(stocktrain)
+```
+
+ACF and residual part
+```{r}
+ggAcf(stocktrain$residuals)
+library(FitAR)
+boxresult<-LjungBoxTest (stocktrain$residuals,k=2,StartLag=2)
+plot(boxresult[,3],main= "Ljung-Box Q Test", ylab= "P-values", xlab= "Lag")
+qqnorm(stocktrain$residuals)
+qqline(stocktrain$residuals)
+```
+The p-values for the Ljung-Box Q test all are well above 0.05, indicating “non-significance.”
+
+As all the graphs are in support of the assumption that there is no pattern in the residuals, we can go ahead and calculate the forecast.
+
+The ACF of residuals shows The mean of the residuals is close to zero and there is no significant correlation in the residuals series
+
+
+Forecast
+```{r}
+predict(stocktrain,n.ahead = 5)
+futurVal <- forecast(stocktrain,h=10, level=c(99.5))
+plot(futurVal)
+```
+A forecast error is the difference between the actual or real and the predicted or forecast value of a time series
+
+
+COmpare ETS vs ARIMA
+
+```{r}
+etc_acc<-accuracy(sesmodel, test)
+etc_acc
+acc_arima<-accuracy(futurVal, test)
+acc_arima
+```
+Arima model is better since error rate (MAPE) is 1.46% compare to 161.57% of ETS
+
+Natural logarithms of the series
+```{r}
+stocktrain_log<- log(stock_price_daily)
+train1 <- window(stocktrain_log, end = c(2016, 4))
+test1 <- window(stocktrain_log, start = c(2013, 1))
+```
+
+
+```{r}
+stocktrain1 <- Arima(train1, order=c(1,1,2),
+  seasonal=c(1,1,2), lambda=0)
+stocktrain1 %>%
+  forecast(h=60) %>%
+  autoplot() + autolayer(test)
+summary(stocktrain1)
+```
+You can see than the error rate (MAPE) has fallen down to 0.36%
+
+
+
+
+
+
+
