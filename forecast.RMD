@@ -1,0 +1,252 @@
+---
+title: "Forecasting"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+TASK 1
+
+Introduction
+In this we will be analysing potential effects of both climate and pollution on disease specific mortality between the years 2010-2020 and forecasting in terms of n terms of R squared, AIC, BIC, MASE et by building different forecasting models such as DLM, ARDL, polyck, koyck, dynamic, exponential smoothing and state-space model.
+
+
+
+Data Description
+This dataset contains potential effects of both climate and pollution on disease specific mortality between the years 2010-2020
+
+```{r echo = TRUE}
+mort<-read.csv("C:/Users/glane/Downloads/MORT.csv")
+head(mort)
+class(mort)
+```
+
+Data Preparation
+We will be converting the dataset into time series inorder to proceed with further analysis and exploration.
+
+```{r}
+mortality <- ts(mort$mortality, frequency = 52 ,start = 2010)
+temp <- ts(mort$temp, frequency = 52 ,start = 2010)
+```
+Plot the data 
+```{r}
+plot(mortality, main = "Time series for monthly average mortality")
+plot(temp, main = "Time series for monthly average temperature")
+```
+From this we can see a few things
+
+1.The mortality peaked only once that post 2012 and was 30.43, apart from that it's either till 20 or below that
+2.The trend is not constant, it moves down during the recession
+3.There is differences in mortality based on month
+
+Temperature plot
+```{r}
+plot(temp, main = "Time series for monthly average temperature")
+```
+There is a clear trend where temperature peaks during early months of the year
+
+
+ACF Plot and ADF Test for mortality
+```{r}
+acf(mortality, lag.max = 48, main="Sample ACF for Monthly average mortality",
+cex.main = 0.65)
+```
+```{r}
+library(urca)
+summary(ur.df(mortality, type = "none", lags = 1, selectlags = "AIC"))
+```
+Analysing the ACF Plot andAugmented Dickey-Fuller test results for monthly mortality we can see that,
+There is an obvious existence of seasonality in the ACF plot
+ADF Test gives a p value less than 0.05, where we can reject the null hypothesis of non-stationarity
+
+
+ACF Plot and ADF Test for temperature
+```{r}
+acf(temp, lag.max = 48, main="Sample ACF for Monthly average temp",
+cex.main = 0.65)
+```
+```{r}
+summary(ur.df(temp, type = "none", lags = 1, selectlags = "AIC"))
+```
+Analysing the ACF Plot andAugmented Dickey-Fuller test results for monthly mortality we can see that,
+There is an obvious existence of seasonality in the ACF plot
+ADF Test gives a p value less than 0.05, where we can reject the null hypothesis of non-stationarity
+
+
+
+Time Series Decomposition
+You should decompose your data to get or present a basic understanding of your data.
+Outputs of a decomposition
+
+1.The underlying trend of your data
+2.A seasonal factor
+3.A remainder which explains what the trend and seasonal factor do not
+
+Types of seasonal decompositions
+
+Additive Seasonal Decomposition: Each season gets moved by a constant number that is added or subtracted from the trend.
+Multiplicative Seasonal Decomposition: Each season has a number we multiply to the trend.
+
+```{r}
+decomposed_mortality_multi <- decompose(mortality, type = "additive")
+plot(decomposed_mortality_multi)
+
+decomposed_temp_additive <- decompose(temp, type = "additive")
+plot(decomposed_temp_additive)
+
+```
+
+Correlation Analysis
+```{r}
+cor(mort)
+```
+Model Fitting
+Distributed Lag Models
+```{r}
+library(dLagM)
+library(forecast)
+model.dlm = dlm(x = mort$mortality, y = mort$temp ,
+q = 4 )
+summary(model.dlm)
+AIC(model.dlm)
+BIC(model.dlm)
+MASE(model.dlm)
+checkresiduals(model.dlm$model, test = F)
+```
+
+Polynomial Distributed Lag Models
+```{r}
+model.poly = polyDlm(x = mort$mortality, y = mort$temp ,
+q = 4 , k = 2 , show.beta = TRUE)
+summary(model.poly)
+AIC(model.poly)
+BIC(model.poly)
+MASE(model.poly)
+checkresiduals(model.poly$model, test = F)
+```
+Koyck Model Models
+```{r}
+
+model.koyck = koyckDlm(x = mort$mortality, y = mort$temp)
+summary(model.koyck )
+AIC(model.koyck )
+BIC(model.koyck )
+MASE(model.koyck )
+checkresiduals(model.koyck$model, test = F)
+```
+autoregressive DLM
+```{r}
+model.ardl =  ardlDlm(x = mort$mortality, y = mort$temp,p =1,q = 1)
+summary(model.ardl )
+AIC(model.ardl )
+BIC(model.ardl )
+MASE(model.ardl )
+checkresiduals(model.ardl$model, test = F)
+```
+
+```{r}
+library(dynlm)
+model.dynlm =  dynlm(mortality~ L(mortality , k = 1 ) + season(mortality))
+summary(model.dynlm )
+AIC(model.dynlm )
+BIC(model.dynlm )
+accuracy(model.dynlm)   #For MASE
+residuals(model.dynlm$model)
+```
+
+Exponential Smoothing Models
+Holt-Winters Additive Method
+```{r}
+mortality1 <- ts(mort$mortality, frequency = 20 ,start = 2010)
+model.hw <- hw(mortality1,seasonal = "additive" , h = 2*frequency(mortality1))
+accuracy(model.hw)
+checkresiduals(model.hw$model)
+```
+
+Holt-Winters Additive Method - Damped
+
+```{r}
+model.hwd <- hw(mortality1,seasonal = "additive" , h = 2*frequency(mortality1),damped = T)
+accuracy(model.hwd)  
+checkresiduals(model.hwd$model)
+```
+
+
+Holt-Winters Multiplicative Method
+```{r}
+model.hwm <- hw(mortality1,seasonal = "multiplicative" , h = 2*frequency(mortality1))
+accuracy(model.hwm)
+checkresiduals(model.hwm$model)
+```
+
+
+Holt-Winters Multiplicative Method - Damped
+```{r}
+model.hwmd <- hw(mortality1,seasonal = "multiplicative" , h = 2*frequency(mortality1))
+accuracy(model.hwmd)
+checkresiduals(model.hwmd$model)
+```
+
+State Space Models
+```{r}
+model.ets = ets(mortality1, model="ZZZ")
+summary(model.ets)
+accuracy(model.ets)
+checkresiduals(model.ets)
+```
+
+```{r}
+model_data_df = data.frame(Model=character(),MASE=numeric(),
+                           BIC= numeric(),AIC=numeric())
+
+model_data_df = rbind(model_data_df,cbind(Model="DLM",MASE=MASE(model.dlm),
+                                               BIC = BIC(model.dlm),
+                                               AIC = AIC(model.dlm)))
+
+model_data_df = rbind(model_data_df,cbind(Model="polyDlm",MASE=MASE(model.poly),
+                                               BIC = BIC(model.dlm),
+                                               AIC = AIC(model.dlm)))
+                      
+model_data_df = rbind(model_data_df,cbind(Model="koyckDlm",MASE=MASE(model.koyck),
+                                               BIC = BIC(model.koyck),
+                                               AIC = AIC(model.koyck)))
+
+model_data_df = rbind(model_data_df,cbind(Model="ARDlm",MASE=MASE(model.ardl),
+                                               BIC = BIC(model.ardl),
+                                               AIC = AIC(model.ardl)))
+
+model_data_df = rbind(model_data_df,cbind(Model="DYNLM",MASE=accuracy(model.dynlm)[6],
+                                               BIC = BIC(model.dynlm),
+                                               AIC = AIC(model.dynlm)))
+
+model_data_df = rbind(model_data_df,cbind(Model="HWA",MASE= accuracy(model.hw)[6],
+                                               BIC = model.hw$model$bic,
+                                               AIC = model.hw$model$aic))
+
+model_data_df = rbind(model_data_df,cbind(Model="HWAD",MASE=accuracy(model.hwd)[6],
+                                               BIC = model.hwd$model$bic,
+                                               AIC = model.hwd$model$aic))
+
+model_data_df = rbind(model_data_df,cbind(Model="HWM",MASE=accuracy(model.hwm)[6],
+                                               BIC = model.hwm$model$bic,
+                                               AIC = model.hwm$model$aic))
+
+model_data_df = rbind(model_data_df,cbind(Model="HWMD",MASE=accuracy(model.hwmd)[6],
+                                               BIC = model.hwmd$model$bic,
+                                               AIC = model.hwmd$model$aic))
+
+model_data_df = rbind(model_data_df,cbind(Model="ETS",MASE=accuracy(model.ets)[6],
+                                               BIC = model.ets$bic,
+                                               AIC = model.ets$aic))
+```
+```{r}
+knitr::kable(model_data_df, caption = "Model Parameters captured so far")
+```
+Holt - winter's additve without damped has the lowest MASE and it is the optimal model. 
+
+```{r}
+predict(model.hw,n.ahead = 4)
+futurVal <- forecast(model.hw,h=4)
+plot(futurVal)
+```
