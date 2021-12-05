@@ -1,0 +1,530 @@
+---
+title: "Churn"
+output:
+  html_document: default
+  word_document: default
+---
+
+##Load the data
+```{r echo=TRUE}
+library(tidyverse)
+library(gridExtra)
+churn <- read.csv("D:/R/syesh/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+```
+
+##Display the structure of the dataframe
+```{r}
+str(churn)
+```
+
+##check missing values
+```{r}
+sapply(churn, function(x) sum(is.na(x)))
+```
+
+##Remove missing values
+```{r}
+churn <- na.omit(churn)
+```
+
+#Remove CustomerId column
+```{r}
+churn<- churn[,-1]
+```
+
+##Converting character variable to factor
+```{r}
+churn <- churn %>% mutate_if(is.character , as.factor)
+str(churn)
+```
+
+#Converting SeniorCitizen to factor
+```{r}
+churn$SeniorCitizen <- factor(churn$SeniorCitizen,levels = c(0,1), labels = c("No","Yes"))
+```
+
+##Exploratory Data Analysis
+#Churn Percentage
+```{r}
+ggplot(churn, aes(x=Churn,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count..-200, label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count', 
+position = position_dodge(.1), size = 3)+ ylab("Count")
+```
+#From the graph we see there are 26.58% customers that churn
+
+#Tenure
+```{r}
+ggplot(churn, aes(x = tenure, fill = Churn)) +
+ geom_histogram(binwidth = 1) +
+ labs(x = "Months",
+      title = "Churn rate by tenure")
+```
+#From the graph we see that Customers are likely to churn after 1 month.
+
+#Gender , Senior Citizen , Partner , Dependents
+```{r}
+a<-ggplot(churn, aes(x=gender,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count', 
+ position = position_dodge(.1),  size = 3)+ ylab("Count")
+
+
+b<-ggplot(churn, aes(x=SeniorCitizen,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+ stat = 'count', position = position_dodge(0.2), size = 3)+ ylab("Count")
+
+
+
+c<-ggplot(churn, aes(x=Partner,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200, label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count', 
+position = position_dodge(.1), size = 3)+ ylab("Count")
+
+
+d<-ggplot(churn, aes(x=Dependents,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')), 
+stat = 'count',position = position_dodge(.1), size = 3) + ylab("Count")
+
+grid.arrange(a,b,c,d,ncol=2)
+
+```
+
+#From the gender, male and female seems to have same proportion to churn.
+#People who are not senior citizens are most likely to churn
+#Customer without partner are more likely to churn
+#Customer without Dependents are more likely to churn
+
+
+#Based on Service
+```{r}
+grid.arrange(ggplot(churn, aes(x=InternetService,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count', position = position_dodge(.1),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=OnlineSecurity,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')),stat = 'count',position = position_dodge(0.2),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=OnlineBackup,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')),stat = 'count',position = position_dodge(0.2),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=DeviceProtection,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')),stat = 'count',position = position_dodge(0.2),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=PhoneService,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')),stat = 'count',position = position_dodge(0.2),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=MultipleLines,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count',position = position_dodge(0.2), size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=TechSupport,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count', position = position_dodge(0.2),size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=StreamingTV,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')),stat = 'count',position = position_dodge(0.2), size = 3)+ ylab("Count"),
+             
+             ggplot(churn, aes(x=StreamingMovies,fill=Churn))+ geom_bar() + geom_text(aes(y = ..count.. -200,label = paste0(round(prop.table(..count..),4) * 100, '%')), stat = 'count',position = position_dodge(0.2),size = 3)+ ylab("Count"))
+```
+
+#From above plots
+#Customer who use fiber optic in internet service are more likely to churn
+#Customer who don't use online security, online backup, device protection, streaming TV, and tech support are more likely to churn 
+
+#Statistical tests
+```{r}
+str(churn)
+chisq.test(churn$Churn, churn$gender)
+chisq.test(churn$Churn, churn$SeniorCitizen)
+chisq.test(churn$Churn, churn$Partner)
+chisq.test(churn$Churn, churn$Dependents)
+chisq.test(churn$Churn, churn$PhoneService)
+chisq.test(churn$Churn, churn$MultipleLines)
+chisq.test(churn$Churn, churn$InternetService)
+chisq.test(churn$Churn, churn$OnlineSecurity)
+chisq.test(churn$Churn, churn$OnlineBackup)
+chisq.test(churn$Churn, churn$DeviceProtection)
+chisq.test(churn$Churn, churn$TechSupport)
+chisq.test(churn$Churn, churn$StreamingTV)
+chisq.test(churn$Churn, churn$StreamingMovies)
+chisq.test(churn$Churn, churn$PaperlessBilling)
+chisq.test(churn$Churn, churn$PaymentMethod )
+chisq.test(churn$Churn, churn$Contract)
+
+t.test(tenure~Churn,data=churn)
+t.test(TotalCharges~Churn,data=churn)
+t.test(MonthlyCharges~Churn,data=churn)
+```
+##Model building
+```{r}
+library(GGally)
+ggcorr(churn, label = T)
+```
+#Since Total charges has strong correlation with tenure and MonthlyCharges, It can be taken out
+
+```{r}
+churn <- churn %>% select(-TotalCharges)
+
+library(caret)
+split_train_test <- createDataPartition(churn$Churn,p=0.7,list=FALSE)
+set.seed(1234)
+dtrain<- churn[split_train_test,]
+dtest<- churn[-split_train_test,]
+
+
+mod <- glm(Churn ~., data = dtrain,
+              family=binomial(link='logit'))
+summary(mod)
+```
+
+#Here we can see that 7 coeffiencients are not defined and throws NA because the model is recognizing that two or more of the predictors are identical, or perfectly predicted by the combination of the other two predictors. This means that we cannot include all three terms in your model.
+
+
+#changing "No phone service" to "No" for column "MultipleLines"
+```{r}
+library(plyr)
+churn$MultipleLines <- as.factor(mapvalues(churn$MultipleLines, 
+                                           from=c("No phone service"),
+                                           to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "OnlineSecurity"
+```{r}
+churn$OnlineSecurity <- as.factor(mapvalues(churn$OnlineSecurity, 
+                                           from=c("No internet service"),
+                                           to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "OnlineBackup"
+```{r}
+churn$OnlineBackup <- as.factor(mapvalues(churn$OnlineBackup, 
+                                            from=c("No internet service"),
+                                            to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "DeviceProtection"
+```{r}
+churn$DeviceProtection <- as.factor(mapvalues(churn$DeviceProtection, 
+                                          from=c("No internet service"),
+                                          to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "TechSupport"
+```{r}
+churn$TechSupport <- as.factor(mapvalues(churn$TechSupport, 
+                                              from=c("No internet service"),
+                                              to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "StreamingTV"
+```{r}
+churn$StreamingTV <- as.factor(mapvalues(churn$StreamingTV, 
+                                         from=c("No internet service"),
+                                         to=c("No")))
+```
+
+#changing "No internet service" to "No" for column "StreamingMovies"
+```{r}
+churn$StreamingMovies <- as.factor(mapvalues(churn$StreamingMovies, 
+                                         from=c("No internet service"),
+                                         to=c("No")))
+```
+
+#Building the model again
+```{r}
+split_train_test <- createDataPartition(churn$Churn,p=0.7,list=FALSE)
+set.seed(1234)
+dtrain<- churn[split_train_test,]
+dtest<- churn[-split_train_test,]
+
+
+mod <- glm(Churn ~., data = dtrain,
+           family=binomial(link='logit'))
+summary(mod)
+```
+
+#we see that Tenure length, contract status, paperless Billing and  total charges have the lowest p-values and can be identified as the best predictors of customer churn
+
+#Confusion matrix
+```{r}
+lr_prob1 <- predict(mod, dtest, type="response")
+lr_pred1 <- ifelse(lr_prob1 > 0.5,"Yes","No")
+table(Predicted = lr_pred1, Actual = dtest$Churn)
+```
+
+the false negative rate 
+251/(251+309)
+
+false positive rate 
+166 / (166+1382)
+
+False Negative rate is much larger
+
+```{r}
+lr_tab2 <- table(Predicted = lr_pred1, Actual = dtest$Churn)
+lr_acc <- sum(diag(lr_tab2))/sum(lr_tab2)
+lr_acc
+```
+
+#Lasso linear regression 
+```{r}
+set.seed(1)
+
+lasso <- train(Churn ~ ., data = dtrain, method = "glmnet",metric = "ROC",na.action=na.pass, preProc="knnImpute", trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE),tuneGrid = expand.grid(alpha = 1, lambda = 10^seq(-3, 3, length = 100)))
+lasso
+```
+
+```{r}
+coef(lasso$finalModel, lasso$bestTune$lambda)
+
+set.seed(1)
+
+predictions <- predict(lasso,dtest)
+acc_lasso <-mean(predictions==dtest$Churn)
+acc_lasso
+```
+
+
+#Ridge linear regression 
+```{r}
+set.seed(1)
+
+Ridge <- train(Churn~., data = dtrain, method = "glmnet",metric = "ROC",na.action=na.pass, preProc="knnImpute",trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE),tuneGrid = expand.grid(alpha = 0, lambda = 10^seq(-3, 3, length = 100)))
+
+
+predictions <- predict(Ridge,dtest)
+acc_ridge<-mean(predictions==dtest$Churn)
+acc_ridge
+```
+##Elastic net linear regression 
+```{r}
+set.seed(1)
+
+enet <- train(Churn~., data = dtrain, method = "glmnet",metric = "ROC",na.action=na.pass, preProc="knnImpute", trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE),tuneGrid = expand.grid(alpha = seq(0,1, length=10), lambda = 10^seq(-3, 3, length = 100)))
+
+predictions <- predict(enet,dtest)
+acc_enet<-mean(predictions==dtest$Churn)
+acc_enet
+```
+
+#rf
+```{r}
+set.seed(1)
+  
+rf <- train(Churn~., data = dtrain, method = "rf",metric = "ROC",na.action=na.pass, preProc="knnImpute", trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE),  importance=T)
+
+predictions <- predict(rf,dtest)
+acc_rf<-mean(predictions==dtest$Churn)
+acc_rf
+```
+
+
+```{r}
+varImp(rf)
+```
+
+
+#Gradient Boosted Tree
+```{r}
+set.seed(1)
+
+gbm <- train(Churn~., data = dtrain, method = "gbm",metric = "ROC", trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE),  preProc="nzv")
+predictions <- predict(gbm,dtest)
+acc_gbm<-mean(predictions==dtest$Churn)
+acc_gbm
+```
+
+
+#SVM LINEAR
+```{r}
+
+set.seed(1)
+
+svmLinear <- train(Churn~.,data = dtrain,method="svmLinear",metric = "ROC",na.action=na.pass, preProc="knnImpute",trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE))
+predictions <- predict(svmLinear,dtest)
+acc_svmLinear<-mean(predictions==dtest$Churn)
+acc_svmLinear
+```
+#C parameter adds a penalty for each misclassified data point. If c is small, the penalty for misclassified points is low so a decision boundary with a large margin is chosen at the expense of a greater number of misclassifications .
+
+
+#SVM Radial
+```{r}
+set.seed(1)
+
+svmRadial <- train(Churn~.,data = dtrain,method                    ="svmRadial",metric= "ROC",na.action=na.pass, preProc="knnImpute",trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE))
+predictions <- predict(svmRadial,dtest)
+acc_svmRadial<-mean(predictions==dtest$Churn)
+acc_svmRadial
+```
+#KNN
+```{r}
+set.seed(1)
+
+knnm <- train(Churn~.,data = dtrain,method ="knn",metric = "ROC",na.action=na.pass, preProc="knnImpute",trControl = trainControl("cv", number = 10,sampling = "smote",summaryFunction = twoClassSummary,classProbs = TRUE))
+predictions <- predict(knnm,dtest)
+acc_knn<-mean(predictions==dtest$Churn)
+acc_knn
+```
+
+#Neural Network
+```{r}
+library(caret)
+intrain = createDataPartition(dtrain$Churn, p=0.9, list = FALSE)
+
+value = dtrain[intrain,]
+churn_validation = dtrain[-intrain,]
+dtrain1 = value
+```
+
+
+```{r}
+churn_train_numericals <- dtrain1[,-c(1:4,6,7,8,9,10,11,12,13,14,15,16,17,19)]
+dummy <- dtrain1[,-c(5,18)]
+churn_train_scale <- scale(churn_train_numericals)
+scaled_train = cbind(churn_train_scale,dummy)
+
+churn_test_numericals <- dtest[,-c(1:4,6,7,8,9,10,11,12,13,14,15,16,17,19)]
+dummytest <- dtest[,-c(5,18)]
+churn_test_scale <- scale(churn_test_numericals)
+scaled_test = cbind(churn_test_scale,dummytest)
+
+churn_val_numericals <- churn_validation[,-c(1:4,6,7,8,9,10,11,12,13,14,15,16,17,19)]
+dummy_val <- churn_validation[,-c(5,18)]
+churn_val_scale <- scale(churn_val_numericals)
+scaled_val = cbind(churn_val_scale,dummy_val)
+
+scaled_train_1 <- scaled_train[,-c(1:8,10,11:15,17,19)]
+scaled_val_1 <- scaled_val[,-c(1:8,10,11:15,17,19)]
+scaled_test_1 <- scaled_test[,-c(1:8,10,11:15,17,19)]
+
+library(mltools)
+library(data.table)
+
+churn_train <- one_hot(data.table(scaled_train_1),dropUnusedLevels = FALSE)
+churn_validation <- one_hot(data.table(scaled_val_1),dropUnusedLevels = FALSE)
+churn_test <- one_hot(data.table(scaled_test_1),dropUnusedLevels = FALSE)
+
+churn_train <- cbind(churn_train,scaled_train)
+churn_train <- churn_train %>% select(-c(InternetService,Contract,PaymentMethod))
+
+churn_test <- cbind(churn_test,scaled_test)
+churn_test <- churn_test %>% select(-c(InternetService,Contract,PaymentMethod))
+
+churn_val <- cbind(churn_validation,scaled_val)
+churn_val <- churn_val %>% select(-c(InternetService,Contract,PaymentMethod))
+
+churn_train$gender <- ifelse(churn_train$gender=="Male",1,0)
+churn_train$SeniorCitizen <- ifelse(churn_train$SeniorCitizen=="Yes",1,0)
+churn_train$Partner <- ifelse(churn_train$Partner=="Yes",1,0)
+churn_train$Dependents <- ifelse(churn_train$Dependents=="Yes",1,0)
+churn_train$PhoneService <- ifelse(churn_train$PhoneService=="Yes",1,0)
+churn_train$MultipleLines <- ifelse(churn_train$MultipleLines=="Yes",1,0)
+churn_train$OnlineSecurity <- ifelse(churn_train$OnlineSecurity=="Yes",1,0)
+churn_train$OnlineBackup <- ifelse(churn_train$OnlineBackup=="Yes",1,0)
+churn_train$DeviceProtection <- ifelse(churn_train$DeviceProtection=="Yes",1,0)
+churn_train$TechSupport <- ifelse(churn_train$TechSupport=="Yes",1,0)
+churn_train$StreamingTV <- ifelse(churn_train$StreamingTV=="Yes",1,0)
+churn_train$StreamingMovies <- ifelse(churn_train$StreamingMovies=="Yes",1,0)
+churn_train$PaperlessBilling <- ifelse(churn_train$PaperlessBilling=="Yes",1,0)
+churn_train$Churn <- ifelse(churn_train$Churn=="Yes",1,0)
+
+churn_test$gender <- ifelse(churn_test$gender=="Male",1,0)
+churn_test$SeniorCitizen <- ifelse(churn_test$SeniorCitizen=="Yes",1,0)
+churn_test$Partner <- ifelse(churn_test$Partner=="Yes",1,0)
+churn_test$Dependents <- ifelse(churn_test$Dependents=="Yes",1,0)
+churn_test$PhoneService <- ifelse(churn_test$PhoneService=="Yes",1,0)
+churn_test$MultipleLines <- ifelse(churn_test$MultipleLines=="Yes",1,0)
+churn_test$OnlineSecurity <- ifelse(churn_test$OnlineSecurity=="Yes",1,0)
+churn_test$OnlineBackup <- ifelse(churn_test$OnlineBackup=="Yes",1,0)
+churn_test$DeviceProtection <- ifelse(churn_test$DeviceProtection=="Yes",1,0)
+churn_test$TechSupport <- ifelse(churn_test$TechSupport=="Yes",1,0)
+churn_test$StreamingTV <- ifelse(churn_test$StreamingTV=="Yes",1,0)
+churn_test$StreamingMovies <- ifelse(churn_test$StreamingMovies=="Yes",1,0)
+churn_test$PaperlessBilling <- ifelse(churn_test$PaperlessBilling=="Yes",1,0)
+churn_test$Churn <- ifelse(churn_test$Churn=="Yes",1,0)
+
+churn_val$gender <- ifelse(churn_val$gender=="Male",1,0)
+churn_val$SeniorCitizen <- ifelse(churn_val$SeniorCitizen=="Yes",1,0)
+churn_val$Partner <- ifelse(churn_val$Partner=="Yes",1,0)
+churn_val$Dependents <- ifelse(churn_val$Dependents=="Yes",1,0)
+churn_val$PhoneService <- ifelse(churn_val$PhoneService=="Yes",1,0)
+churn_val$MultipleLines <- ifelse(churn_val$MultipleLines=="Yes",1,0)
+churn_val$OnlineSecurity <- ifelse(churn_val$OnlineSecurity=="Yes",1,0)
+churn_val$OnlineBackup <- ifelse(churn_val$OnlineBackup=="Yes",1,0)
+churn_val$DeviceProtection <- ifelse(churn_val$DeviceProtection=="Yes",1,0)
+churn_val$TechSupport <- ifelse(churn_val$TechSupport=="Yes",1,0)
+churn_val$StreamingTV <- ifelse(churn_val$StreamingTV=="Yes",1,0)
+churn_val$StreamingMovies <- ifelse(churn_val$StreamingMovies=="Yes",1,0)
+churn_val$PaperlessBilling <- ifelse(churn_val$PaperlessBilling=="Yes",1,0)
+churn_val$Churn <- ifelse(churn_val$Churn=="Yes",1,0)
+
+
+train = churn_train
+test = churn_test
+val = churn_val
+
+churn_train_final = train[,-26]
+
+churn_train_final_lab = train[,26]
+
+churn_test_final = test[,-26]
+
+churn_test_final_lab = test[,26]
+
+churn_val_final = val[,-26]
+
+churn_val_final_lab = val[,26]
+
+
+churn_train_final = as.matrix(churn_train_final)
+
+churn_train_final_lab = as.matrix(churn_train_final_lab)
+
+churn_test_final = as.matrix(churn_test_final)
+
+churn_test_final_lab = as.matrix(churn_test_final_lab)
+
+churn_val_final = as.matrix(churn_val_final)
+
+churn_val_final_lab = as.matrix(churn_val_final_lab)
+
+```
+
+```{r}
+set.seed(1)
+
+library(tfruns)
+
+runs <- tuning_run("C:/Users/glane/Downloads/CHURN TUNE.R",
+flags = list(
+nodes1 = c(64, 128),
+nodes2 = c(128,392),
+learning_rate = c(0.01, 0.05, 0.001, 0.0001),
+batch_size=c(100,200,500,1000),
+epochs=c(30,50,100),
+activation=c("relu","sigmoid","tanh")
+),
+sample = 0.02
+)
+print(runs)
+view_run()
+```
+```{r}
+library(keras)
+set.seed(1)
+
+model =keras_model_sequential()
+
+model %>%
+  layer_dense(units = 64, activation = "sigmoid", input_shape = dim(churn_train_final)[2]) %>% layer_dropout(0.5) %>% 
+  layer_dense(units = 392, activation = "sigmoid") %>% layer_dropout(0.5) %>%
+  layer_dense(units = 1,activation = "sigmoid")
+
+model %>% compile(
+ loss = 'binary_crossentropy',
+ optimizer = optimizer_adam(lr=0.01),
+ metrics = c('accuracy'))
+
+model %>% fit(
+  churn_train_final, churn_train_final_lab, epochs = 100
+  , batch_size= 200,
+   validation_data=list(churn_val_final, churn_val_final_lab))
+
+```
+
+```{r}
+score <- model %>% evaluate(
+  churn_test_final,churn_test_final_lab,
+  batch_size = 200,
+  verbose = 1
+)
+
+cat('Test accuracy', score[[2]], '\n')
+```
+
+
+
+##Compared the accuracy of logistic, lasso, ridge, elastic net, random forest, gbm,knn and neural networks models on the test data. Logistic regression has the best of the lot
