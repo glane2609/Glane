@@ -1,0 +1,126 @@
+---
+title: "INSIGHT INTO AIR TRAVEL DISASTERS AND SAFETY"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    runtime : shiny
+    storyboard: true
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(gganimate)
+library(janitor)
+library(plotly)
+library(viridis)
+library(reshape2)
+```
+
+
+
+```{r}
+data <- read.csv("Excel SS Airline project V2.csv")
+data <- clean_names(data)
+
+#Removing region that has no name in it  and other region
+data <- data[-which(data$region == "" | data$region == "Other"), ]
+
+data$fatalities <- as.numeric(as.character(data$fatalities))
+#When we convert to numeric we see there's 1 missing value as Vietnam has ? in data so we remove that
+
+data <- na.omit(data)
+
+agg = aggregate(fatalities~region+year, data, mean)
+
+
+data2 <- agg %>%
+ group_by(year) %>%
+ # Rank the prices by year
+ mutate(rank = rank(-fatalities),
+        fatalities_rel = fatalities/fatalities[rank==1],
+        fatalities_lbl = paste0(" ",round(fatalities,2))) %>%
+ group_by(region) %>% 
+ ungroup()
+```
+
+Flying is said to be the safest form of transport, certainly in terms of fatalities by distance travelled. According to the Civil Aviation Authority, the fatality rate per billion kilometres travelled by plan is 0.003 compared to 0.27 by rail and 2.57 by car (Allianz Global Corporate & Specialty, 2022). In fact, the aviation sector has experienced robust growth since the dawn of this era, the past 60 years have seen an ongoing decline in fatal accidents, underpinned by a continuous improvement in safety. (Dobie, 2014, p. 4). Perhaps there are other factors such as world region, advances or iterations in technology or number of travellers which may also have an impact on air travel. This publication aims to reflect on the history of flight disasters to gain some future insights. 
+
+
+
+### Fatalities per region timeline (1950 - 2020)
+```{r}
+p_static <- ggplot(data2, aes(rank, group = region,
+                               fill = as.factor(region), color = as.factor(region))) +
+ geom_tile(aes(y = fatalities/2,
+               height = fatalities,
+               width = 0.9), alpha = 0.8, color = NA) +
+ geom_text(aes(y = 0, label = paste(region, " ")), vjust = 0.2, hjust = 1, size = 9) +
+ geom_text(aes(y = fatalities, label = fatalities_lbl, hjust = 0), size = 9) +
+ coord_flip(clip = "off", expand = FALSE) +
+ scale_y_continuous(labels = scales::comma) +
+ scale_x_reverse() +
+ guides(color = FALSE, fill = FALSE) +
+ theme(axis.line = element_blank(),
+       axis.text.x = element_blank(),
+       axis.text.y = element_blank(),
+       axis.ticks = element_blank(),
+       axis.title.x = element_blank(),
+       axis.title.y = element_blank(),
+       legend.position = "none",
+       panel.background = element_blank(),
+       panel.border = element_blank(),
+       panel.grid.major = element_blank(),
+       panel.grid.minor = element_blank(),
+       panel.grid.major.x = element_line(size = 0.1, color = "grey"),
+       panel.grid.minor.x = element_line(size = 0.1, color = "grey"),
+       plot.title = element_text(size = 30),
+       plot.subtitle = element_text(size=25, face = "italic", color = "grey",  hjust = 0.5, vjust = -1),
+       plot.background = element_blank(),
+       plot.margin = margin(4, 4, 4, 4, "cm"))
+
+anim <- p_static + 
+ transition_states(year, transition_length = 4, state_length = 1) +
+ view_follow(fixed_x = TRUE)  +
+ labs(title = 'Fatalities per year : {closest_state}')
+
+animate(anim, nframes = 100, fps = 10,  width = 1200, height = 1000, duration = 100)
+
+```
+
+
+```{r}
+world_flight <- read.csv("world-air-passenger-traffic-evolution-1980-2020.csv",sep = ";")
+world_flight_long <- melt(world_flight, id="Year")  # convert to long format
+
+world_flight_long$Year <- as.numeric(world_flight_long$Year)
+
+colnames(world_flight_long)[2] <- "Flights"
+colnames(world_flight_long)[3] <- "Total_passengers_in_Billion"
+```
+
+### Passenger plot
+```{r}
+p <- ggplot(data=world_flight_long,
+       aes(x=Year, y=Total_passengers_in_Billion, colour=Flights)) +
+    geom_line()
+ggplotly(p)
+```
+***
+abaddd.ffff
+
+
+### Plot 2
+```{r}
+
+p = ggplot(world_flight_long, aes(Year, Total_passengers_in_Billion, colour = Flights)) +
+    geom_line() +
+    transition_reveal(Year) +
+    labs(title = 'Year: {frame_along}')
+
+animate(p, nframes=40)
+```
+
+***
+References
